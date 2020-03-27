@@ -1,10 +1,16 @@
 const port = 8080;
 const io = require('socket.io')(port);
+io.set('origins', '*:*');
+
 const uuid = require('uuid');
+
 const getGameStatus = require('./gameLogic').getGameStatus;
+
 const clientStatus = require('./status').ClientStatus;
 const lobbyStatus = require('./status').LobbyStatus;
 const gameStatus = require('./status').GameStatus;
+const symbolStatus = require('./status').SymbolStatus;
+
 // Массив, хранящий подключенных клиентов
 let clients = [];
 // Массив, хранящий существующие лобби
@@ -18,7 +24,7 @@ const makeEmptyMatrix = (n, m) => {
     for (let i = 0; i < n; i++) {
         matrix[i] = [];
         for (let j = 0; j < m; j++)
-            matrix[i][j] = 0;
+            matrix[i][j] = symbolStatus.Empty;
     }
 
     return matrix;
@@ -33,13 +39,25 @@ const checkLobbyToConnect = (lobby, clientID, password) => {
     const connect = { CanConnect: false };
 
     if (lobby.password == password) {
-        if (lobby.playersCount < 2)
-            connect.Side = lobby.xPlayerID == '' ? 'x' : 'z';
-        else
-            if (lobby.xPlayerID == clientID)
+        // define the symbol for the first player
+        if (lobby.playersCount === 0)
+            connect.Side = (Math.floor((Math.random() * 100)) % 2) == true ? 'x' : 'z';
+
+        if (lobby.playersCount === 1) {
+            if (lobby.xPlayerID === '')
                 connect.Side = 'x';
-            else if (lobby.zPlayerID == clientID)
+            else if (lobby.zPlayerID === '')
                 connect.Side = 'z';
+        }
+
+        if (lobby.playersCount === 2) {
+            if (lobby.xPlayerID === clientID)
+                connect.Side = 'x';
+            if (lobby.zPlayerID === clientID)
+                connect.Side = 'z';
+            if ('Side' in connect)
+                connect.reconected = true;
+        }
 
         if ('Side' in connect)
             connect.CanConnect = true;
@@ -75,12 +93,11 @@ const getLobbiesForClient = () => {
     return buf2;
 };
 
-console.log('Сервер запущен.\n');
+console.log(`Server running on ${port}`);
 
 io.sockets.on('connection', (socket) => {
     // При подключении клиента добавляем информацию о нём в соответствующий массив
     clients.push({ id: socket.id, status: clientStatus.InMenu });
-    console.log(`Новое подключение: ${socket.id}.\n`);
     // Клиент отключился
     socket.on('disconnect', () => {
         const idx = clients.findIndex((element) => { return element.id == socket.id });
@@ -91,10 +108,11 @@ io.sockets.on('connection', (socket) => {
     // Клиент запрашивает уникальный ID
     socket.on('getUniqueID', (data) => {
         // Отправляем клиенту уникальный ID
-        data(uuid.v4());
+        data({ id: uuid.v4() });
     });
     // Клиент запрашивает список существующих лобби
     socket.on('getLobbies', (data) => {
+        console.log("lobbies requested")
         // Отправляем клиенту список лобби
         data(getLobbiesForClient());
         // Обновляем статус клиента
@@ -102,21 +120,24 @@ io.sockets.on('connection', (socket) => {
     });
     // Клиент запрашивает создание нового лобби
     socket.on('createLobby', ({ name, password, makerID, makerName }) => {
-        // Определяем сторону, за которую будет играть создатель лобби
-        const randomFlag = (Math.random() * 100) % 2 == 0;
+        console.log(name, password, makerID, makerName)
         const newLobby = {
             id: lastLobbyID.toString(),
             name: name,
             password: password,
-            playersCount: 1,
-            [randomFlag ? 'xPlayerID' : 'zPlayerID']: makerID,
-            [!randomFlag ? 'xPlayerID' : 'zPlayerID']: '',
-            [randomFlag ? 'xPlayerName' : 'zPlayerName']: makerName,
-            [!randomFlag ? 'xPlayerName' : 'zPlayerName']: '',
-            status: lobbyStatus.Open,
+            playersCount: 0,
+            creatorID: makerID,
+
+            xPlayerID: '',
+            xPlayerName: '',
             xPlayerReady: false,
+
+            zPlayerID: '',
+            zPlayerName: '',
             zPlayerReady: false,
-            turn: (Math.random() * 100) % 2 == 0, // Определяем, кто будет ходить первым. false - нолики, true - крестики.
+
+            status: lobbyStatus.Open,
+            turn: (Math.floor((Math.random() * 100)) % 2) == true ? symbolStatus.Cross : symbolStatus.Nought, // false - нолики, true - крестики. Блять, додик Патау, проверяй ту поеботу, что пишешь
             field: { matrix: makeEmptyMatrix(15, 15), emptyCount: 225 }
         };
 
@@ -129,11 +150,11 @@ io.sockets.on('connection', (socket) => {
             lobbies.push(newLobby);
             // Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
             // массив лобби обновился, и отправляем им обновлённый массив
-            lobbiesUpdated(socket, getLobbiesForClient());
             // Обновляем статус клиента
             changeClientStatus(socket.id, clientStatus.InLobby);
             // Уведомляем запросившего клиента о том, что лобби успешно создано и отправляем ID лобби
-            socket.emit('lobbyCreated', newLobby.id);
+            socket.emit('lobbyCreated', { id: newLobby.id });
+            lobbiesUpdated(socket, getLobbiesForClient());
         } catch (error) {
             // Уведомляем клиента о том, что лобби не было создано
             socket.emit('lobbyIsNotCreated');
@@ -142,6 +163,7 @@ io.sockets.on('connection', (socket) => {
     });
     // Клиент запрашивает подключение к существующему лобби
     socket.on('joinLobby', ({ lobbyID, password, clientID, clientName }) => {
+        console.log(lobbyID, password, clientID, clientName);
         const lobby = lobbies.find((element) => { return element.id == lobbyID; });
         // Если такое лобби существует ...
         if (lobby !== undefined) {
@@ -164,9 +186,12 @@ io.sockets.on('connection', (socket) => {
 
                     const lobbyInfo = {
                         id: lobbyID,
-                        status: lobby.status,
                         field: lobby.field.matrix,
+                        xPlayer: lobby.xPlayerID,
+                        oPlayer: lobby.zPlayerID,
+                        currentTurn: lobby.turn
                     }
+
                     // Уведомляем клиента об успешном подключении к лобби
                     socket.emit('successJoin', lobbyInfo);
                     // Обновляем статус клиента
@@ -176,20 +201,54 @@ io.sockets.on('connection', (socket) => {
                     socket.emit('failureJoin');
                 }
             }
-            else
-            {
+            else {
                 // Уведомляем клиента о неуспешной попытке подключения к лобби
                 socket.emit('failureJoin');
             }
         }
-        else
-        {
+        else {
             // Уведомляем клиента о неуспешной попытке подключения к лобби
             socket.emit('failureJoin');
         }
     });
+    socket.on('leaveLobby', ({ lobbyID, clientID }) => {
+        const lobby = lobbies.find((element) => { return element.id == lobbyID; });
+        if (lobby !== undefined) {
+            // Grab all info about user
+            try {
+                // Если игрок впервые подключается к лобби, а не переподключается после обрыва соединения
+                if (lobby.zPlayerID === clientID) {
+                    lobby.zPlayerID = '';
+                    lobby.zPlayerName = '';
+                    lobby.zPlayerReady = false;
+                } else if (lobby.xPlayerID === clientID) {
+                    lobby.xPlayerID = '';
+                    lobby.xPlayerName = '';
+                    lobby.xPlayerReady = false;
+                }
+                lobby.playersCount--;
+
+               
+                const idx = lobbies.findIndex((element) => { return element.id == lobbyID; });
+                lobbies.splice(idx, 1);
+
+                io.in(lobby.id).emit('lobbyDeleted');
+
+                lobbiesUpdated(socket, getLobbiesForClient());
+                socket.leave(lobbyID);
+            } catch {
+                io.in(lobby.id).emit('lobbyDeleted');
+                // Delete user from the room
+                socket.leave(lobbyID);
+            }
+        }
+        else io.in(lobby.id).emit('lobbyDeleted');
+    });
     // Клиент готов к началу игры
     socket.on('ready', ({ lobbyID, clientID }) => {
+        //TODO: BAGGY ON SAME NICKNAMES
+        console.log('ready requested')
+        console.log(lobbyID, clientID)
         const lobby = lobbies.find((element) => { return element.id == lobbyID; });
 
         if (lobby !== undefined) {
@@ -203,10 +262,12 @@ io.sockets.on('connection', (socket) => {
                 default:
                     break;
             }
+            console.log(lobby)
             // Если оба игрока готовы ...
             if (lobby.xPlayerReady && lobby.zPlayerReady) {
                 // Уведомляем клиентов о старте игры и отправляем ID игрока, который делает первый ход
-                io.in(lobby.id).emit('gameStarted', lobby.turn ? lobby.xPlayerID : lobby.zPlayerID);
+                io.in(lobby.id).emit('gameStarted', { turn: lobby.turn === symbolStatus.Cross ? lobby.xPlayerID : lobby.zPlayerID });
+                console.log('gameStarted')
                 // Обновляем статус лобби
                 lobby.status = lobbyStatus.Game;
                 // Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
@@ -214,7 +275,7 @@ io.sockets.on('connection', (socket) => {
                 lobbiesUpdated(socket, getLobbiesForClient());
 
                 const roomSockets = io.sockets.adapter.rooms[lobby.id].sockets;
-        
+
                 for (let roomSocket in roomSockets)
                     changeClientStatus(roomSocket, clientStatus.InGame);
             }
@@ -222,6 +283,7 @@ io.sockets.on('connection', (socket) => {
     });
     // Клиент отменил готовность к началу игры
     socket.on('notReady', ({ lobbyID, clientID }) => {
+        console.log('not ready requested')
         const lobby = lobbies.find((element) => { return element.id == lobbyID; });
 
         if (lobby !== undefined) {
@@ -239,19 +301,23 @@ io.sockets.on('connection', (socket) => {
     });
     // Клиент делает ход
     socket.on('makeMove', ({ lobbyID, clientID, point }) => {
+        console.log(lobbyID, clientID, point)
         const lobby = lobbies.find((element) => { return element.id == lobbyID; });
 
         if (lobby !== undefined) {
             // Если сейчас ход клиента ...
-            if (lobby.turn && lobby.xPlayerID == clientID
-                || !lobby.turn && lobby.zPlayerID == clientID) {
+            if (lobby.turn === symbolStatus.Cross && lobby.xPlayerID === clientID ||
+                lobby.turn === symbolStatus.Nought && lobby.zPlayerID === clientID) {
                 // Если клетка пустая ...
-                if (lobby.field.matrix[point.X][point.Y] == 0) {
-                    lobby.field.matrix[point.X][point.Y] = lobby.turn ? 1 : 2;
+                if (lobby.field.matrix[point.X][point.Y] == symbolStatus.Empty) {
+                    lobby.field.matrix[point.X][point.Y] = lobby.turn;
                     lobby.field.emptyCount--;
-                    lobby.turn = !lobby.turn;
-                    io.in(lobby.id).emit('moveIsCorrect',
-                        { point: point, figure: lobby.turn });
+                    if (lobby.turn === symbolStatus.Cross)
+                        lobby.turn = symbolStatus.Nought;
+                    else
+                        lobby.turn = symbolStatus.Cross;
+                    io.in(lobby.id).emit('moveIsCorrect', { point: point, figure: lobby.turn });
+                    console.log('moveIsCorrect')
 
                     const gs = getGameStatus(lobby.field, 5, point);
                     // Если игрок победил ...
@@ -259,13 +325,13 @@ io.sockets.on('connection', (socket) => {
                         // Уведомляем клиентов в комнате
                         io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Win, winnerID: clientID });
                         lobby.status = lobbyStatus.Close;
-                    // Если ничья ...
+                        // Если ничья ...
                     } else if (gs == gameStatus.Draw) {
                         // Уведомляем клиентов в комнате
                         io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Draw });
                         lobby.status = lobbyStatus.Close;
                     } else {
-                        io.in(lobbyID.toString()).emit('nowMove', lobby.turn ? lobby.xPlayerID : lobby.zPlayerID);
+                        io.in(lobbyID.toString()).emit('nowMove', (lobby.turn === symbolStatus.Cross) ? lobby.xPlayerID : lobby.zPlayerID);
                     }
 
                     if (lobby.status == lobbyStatus.Close) {
@@ -274,9 +340,18 @@ io.sockets.on('connection', (socket) => {
                         lobbies.splice(idx, 1);
                     }
                 } else
-                    socket.emit('moveIsNotCorrect');             
+                    socket.emit('moveIsNotCorrect');
             } else
                 socket.emit('moveIsNotCorrect');
         }
+    });
+
+    socket.on('checkPassword', ({ lobbyID, password }, callback) => {
+        const lobby = lobbies.find((element) => { return element.id == lobbyID; });
+        if (lobby !== undefined)
+            if (lobby.password == password)
+                callback({ status: true });
+            else
+                callback({ status: false });
     });
 });

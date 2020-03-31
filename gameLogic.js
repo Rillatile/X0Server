@@ -5,7 +5,6 @@ checkDiagonals = (matrix, point, winCount) => {
     let count = 1;
 
     for (let i = point.X + 1, j = point.Y + 1;
-        //TODO: FIX
         (i < matrix[0].length) && (i < i + winCount) && (j < matrix[0].length) && (j < j + winCount); i++, j++) {
         if (matrix[i][j] == figure)
             count++;
@@ -53,11 +52,12 @@ checkHorizontal = (matrix, point, winCount) => {
     const figure = matrix[point.X][point.Y];
     let count = 1;
 
-    for (let j = point.Y + 1; (j < j + winCount) && (j < matrix[0].length); j++)
+    for (let j = point.Y + 1; (j < j + winCount) && (j < matrix[0].length); j++) {
         if (matrix[point.X][j] == figure)
             count++;
         else
             break;
+    }
 
     if (count < winCount) {
         for (let j = point.Y - 1; (j > j - winCount) && (j > -1); j--)
@@ -74,11 +74,12 @@ checkVertical = (matrix, point, winCount) => {
     const figure = matrix[point.X][point.Y];
     let count = 1;
 
-    for (let i = point.X + 1; (i < i + winCount) && (i < matrix[point.Y].length); i++)
+    for (let i = point.X + 1; (i < i + winCount) && (i < matrix[point.Y].length); i++) {
         if (matrix[i][point.Y] == figure)
             count++;
         else
             break;
+    }
 
     if (count < winCount) {
         for (let i = point.X - 1; (i > i - winCount) && (i > -1); i--)

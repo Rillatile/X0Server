@@ -9,6 +9,7 @@
   "author": "Roman Malinkov",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "socket.io": "^2.3.0",
     "uuid": "^7.0.1"
   },

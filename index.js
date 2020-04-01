@@ -312,48 +312,55 @@ io.sockets.on('connection', (socket) => {
             // Если сейчас ход клиента ...
             if ((lobby.turn === symbolStatus.Cross && lobby.xPlayerID === clientID) ||
                 (lobby.turn === symbolStatus.Nought && lobby.zPlayerID === clientID)) {
-                // Если клетка пустая ...
-                if (lobby.field.matrix[point.X][point.Y] == symbolStatus.Empty) {
-                    lobby.field.matrix[point.X][point.Y] = lobby.turn;
-                    lobby.field.emptyCount--;
+                    if (point.X > -1 && point.X < 15 && point.Y > -1 && point.Y < 15) {
+                        // Если клетка пустая ...
+                        if (lobby.field.matrix[point.X][point.Y] == symbolStatus.Empty) {
+                            lobby.field.matrix[point.X][point.Y] = lobby.turn;
+                            lobby.field.emptyCount--;
 
-                    if (lobby.turn === symbolStatus.Cross)
-                        lobby.turn = symbolStatus.Nought;
-                    else
-                        lobby.turn = symbolStatus.Cross;
-                    
-                    io.in(lobby.id).emit('moveIsCorrect', { point: point, figure: lobby.turn });
+                            if (lobby.turn === symbolStatus.Cross)
+                                lobby.turn = symbolStatus.Nought;
+                            else
+                                lobby.turn = symbolStatus.Cross;
+                            
+                            io.in(lobby.id).emit('moveIsCorrect', { point: point, figure: lobby.turn });
 
-                    const gs = getGameStatus(lobby.field, 5, point);
-                    // Если игрок победил ...
-                    if (gs == gameStatus.Win) {
-                        // Уведомляем клиентов в комнате
-                        io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Win, winnerID: clientID });
-                        lobby.status = lobbyStatus.Close;
-                        // Если ничья ...
-                    } else if (gs == gameStatus.Draw) {
-                        // Уведомляем клиентов в комнате
-                        io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Draw });
-                        lobby.status = lobbyStatus.Close;
+                            const gs = getGameStatus(lobby.field, 5, point);
+                            // Если игрок победил ...
+                            if (gs == gameStatus.Win) {
+                                // Уведомляем клиентов в комнате
+                                io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Win, winnerID: clientID });
+                                lobby.status = lobbyStatus.Close;
+                                // Если ничья ...
+                            } else if (gs == gameStatus.Draw) {
+                                // Уведомляем клиентов в комнате
+                                io.in(lobbyID.toString()).emit('gameEnded', { status: gameStatus.Draw });
+                                lobby.status = lobbyStatus.Close;
+                            } else {
+                                io.in(lobbyID.toString()).emit('nowMove',
+                                    { id: (lobby.turn === symbolStatus.Cross) ? lobby.xPlayerID : lobby.zPlayerID });
+                            }
+
+                            if (lobby.status == lobbyStatus.Close) {
+                                const idx = lobbies.findIndex((element) => { return element.id == lobbyID; });
+
+                                Object.keys(socket.adapter.rooms[lobbies[idx].id].sockets).forEach((el) => {
+                                    changeClientStatus(el, clientStatus.InLobbiesList);
+                                    io.sockets.connected[el].leave(lobbies[idx].id);
+                                });
+
+                                lobbies.splice(idx, 1);
+                                lobbiesUpdated(socket, getLobbiesForClient());
+                            }
+                        } else {
+                            socket.emit('moveIsNotCorrect');
+                        }
                     } else {
-                        io.in(lobbyID.toString()).emit('nowMove', (lobby.turn === symbolStatus.Cross) ? lobby.xPlayerID : lobby.zPlayerID);
+                        socket.emit('moveIsNotCorrect');
                     }
-
-                    if (lobby.status == lobbyStatus.Close) {
-                        const idx = lobbies.findIndex((element) => { return element.id == lobbyID; });
-
-                        Object.keys(socket.adapter.rooms[lobbies[idx].id].sockets).forEach((el) => {
-                            changeClientStatus(el, clientStatus.InLobbiesList);
-                            io.sockets.connected[el].leave(lobbies[idx].id);
-                        });
-
-                        lobbies.splice(idx, 1);
-                        lobbiesUpdated(socket, getLobbiesForClient());
-                    }
-                } else
-                    socket.emit('moveIsNotCorrect');
-            } else
+            } else {
                 socket.emit('moveIsNotCorrect');
+            }
         }
     });
 });

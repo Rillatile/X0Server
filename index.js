@@ -364,5 +364,3 @@ io.sockets.on('connection', (socket) => {
         }
     });
 });
-
-exports.server = io;

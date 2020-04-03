@@ -197,14 +197,14 @@ describe('Проверка корректности работы сервера'
     });*/
 });
 
-describe('Проверка некорректной партии', () => {
+/*describe('Проверка некорректной партии', () => {
     let client1;
     let client2;
     let id1;
     let id2;
     let gameInfo = {};
     let xPlayer = {};
-    let zPlayer = {};
+    let oPlayer = {};
 
     before((done) => {
         app.server.listen(8080).set('origins', '*:*');
@@ -226,10 +226,10 @@ describe('Проверка некорректной партии', () => {
                             console.log(`Первыми ходят ${data4.currentTurn ? 'нолики' : 'крестики'}`);
                             if (flag) {
                                 xPlayer = { client: client1, id: id1 };
-                                zPlayer = { client: client2, id: id2 };
+                                oPlayer = { client: client2, id: id2 };
                             } else {
                                 xPlayer = { client: client2, id: id2 };
-                                zPlayer = { client: client1, id: id1 };
+                                oPlayer = { client: client1, id: id1 };
                             }
                             client1.emit('ready', { lobbyID: data4.id, clientID: id1 });
                             client2.emit('ready', { lobbyID: data4.id, clientID: id2 });
@@ -271,7 +271,7 @@ describe('Проверка некорректной партии', () => {
 
     it('Проверка попытки сделать ход вне очереди', (done) => {
         if (gameInfo.turn === xPlayer.id) {
-            makeIncorrectMove(zPlayer, { X: 0, Y: 0 });
+            makeIncorrectMove(oPlayer, { X: 0, Y: 0 });
         } else {
             makeIncorrectMove(xPlayer, { X: 0, Y: 0 });
         }
@@ -283,7 +283,7 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: -1, Y: 0 });
         } else {
-            makeIncorrectMove(zPlayer, { X: -1, Y: 0 });
+            makeIncorrectMove(oPlayer, { X: -1, Y: 0 });
         }
 
         done();
@@ -293,7 +293,7 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: 0, Y: -1 });
         } else {
-            makeIncorrectMove(zPlayer, { X: 0, Y: -1 });
+            makeIncorrectMove(oPlayer, { X: 0, Y: -1 });
         }
 
         done();
@@ -303,7 +303,7 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: -1, Y: -1 });
         } else {
-            makeIncorrectMove(zPlayer, { X: -1, Y: -1 });
+            makeIncorrectMove(oPlayer, { X: -1, Y: -1 });
         }
 
         done();
@@ -313,7 +313,7 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: 15, Y: 0 });
         } else {
-            makeIncorrectMove(zPlayer, { X: 15, Y: 0 });
+            makeIncorrectMove(oPlayer, { X: 15, Y: 0 });
         }
 
         done();
@@ -323,7 +323,7 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: 0, Y: 15 });
         } else {
-            makeIncorrectMove(zPlayer, { X: 0, Y: 15 });
+            makeIncorrectMove(oPlayer, { X: 0, Y: 15 });
         }
 
         done();
@@ -333,12 +333,12 @@ describe('Проверка некорректной партии', () => {
         if (gameInfo.turn === xPlayer.id) {
             makeIncorrectMove(xPlayer, { X: 15, Y: 15 });
         } else {
-            makeIncorrectMove(zPlayer, { X: 15, Y: 15 });
+            makeIncorrectMove(oPlayer, { X: 15, Y: 15 });
         }
 
         done();
     });
-});
+});*/
 
 describe('Проверка корректной победной партии', () => {
     let client1;
@@ -347,7 +347,7 @@ describe('Проверка корректной победной партии', 
     let id2;
     let gameInfo = {};
     let xPlayer = {};
-    let zPlayer = {};
+    let oPlayer = {};
 
     before((done) => {
         app.server.listen(8080).set('origins', '*:*');
@@ -369,10 +369,10 @@ describe('Проверка корректной победной партии', 
                             console.log(`Первыми ходят ${data4.currentTurn ? 'нолики' : 'крестики'}`);
                             if (flag) {
                                 xPlayer = { client: client1, id: id1 };
-                                zPlayer = { client: client2, id: id2 };
+                                oPlayer = { client: client2, id: id2 };
                             } else {
                                 xPlayer = { client: client2, id: id2 };
-                                zPlayer = { client: client1, id: id1 };
+                                oPlayer = { client: client1, id: id1 };
                             }
                             client1.emit('ready', { lobbyID: data4.id, clientID: id1 });
                             client2.emit('ready', { lobbyID: data4.id, clientID: id2 });
@@ -428,7 +428,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 0, Y: 0 });
         } else {
-            makeCorrectMove(zPlayer, { X: 0, Y: 0 });
+            makeCorrectMove(oPlayer, { X: 0, Y: 0 });
         }
 
         done();
@@ -438,7 +438,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 1, Y: 0 });
         } else {
-            makeCorrectMove(zPlayer, { X: 1, Y: 0 });
+            makeCorrectMove(oPlayer, { X: 1, Y: 0 });
         }
 
         done();
@@ -448,7 +448,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 0, Y: 1 });
         } else {
-            makeCorrectMove(zPlayer, { X: 0, Y: 1 });
+            makeCorrectMove(oPlayer, { X: 0, Y: 1 });
         }
 
         done();
@@ -458,7 +458,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 2, Y: 0 });
         } else {
-            makeCorrectMove(zPlayer, { X: 2, Y: 0 });
+            makeCorrectMove(oPlayer, { X: 2, Y: 0 });
         }
 
         done();
@@ -468,7 +468,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 0, Y: 2 });
         } else {
-            makeCorrectMove(zPlayer, { X: 0, Y: 2 });
+            makeCorrectMove(oPlayer, { X: 0, Y: 2 });
         }
 
         done();
@@ -478,7 +478,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 3, Y: 0 });
         } else {
-            makeCorrectMove(zPlayer, { X: 3, Y: 0 });
+            makeCorrectMove(oPlayer, { X: 3, Y: 0 });
         }
 
         done();
@@ -488,7 +488,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 0, Y: 3 });
         } else {
-            makeCorrectMove(zPlayer, { X: 0, Y: 3 });
+            makeCorrectMove(oPlayer, { X: 0, Y: 3 });
         }
         
         done();
@@ -498,7 +498,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 4, Y: 0 });
         } else {
-            makeCorrectMove(zPlayer, { X: 4, Y: 0 });
+            makeCorrectMove(oPlayer, { X: 4, Y: 0 });
         }
 
         done();
@@ -508,7 +508,7 @@ describe('Проверка корректной победной партии', 
         if (gameInfo.turn === xPlayer.id) {
             makeCorrectMove(xPlayer, { X: 0, Y: 4 });
         } else {
-            makeCorrectMove(zPlayer, { X: 0, Y: 4 });
+            makeCorrectMove(oPlayer, { X: 0, Y: 4 });
         }
 
         done();

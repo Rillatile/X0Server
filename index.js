@@ -28,13 +28,15 @@ const makeEmptyMatrix = (n, m) => {
 
   return matrix;
 };
-// Функция, проверяющая возможность подключиться к существующему лобби.
-// Возвращает объект, имеющий 3 свойства: CanConnect - возможность подключения (true / false),
-// Reconnected - производится ли переподключение,
-// Side - сторона, за которую будет играть второй игрок ('x' / 'o').
-// 'x' - для крестиков, 'o' - для ноликов.
-// Если клиент не имеет права подключаться, возвращаемый объект не будет иметь свойства Side,
-// а свойство CanConnect будет равно false
+/**
+ * Функция, проверяющая возможность подключиться к существующему лобби.
+ * Возвращает объект, имеющий 3 свойства: CanConnect - возможность подключения (true / false),
+ * Reconnected - производится ли переподключение,
+ * Side - сторона, за которую будет играть второй игрок ('x' / 'o').
+ * 'x' - для крестиков, 'o' - для ноликов.
+ * Если клиент не имеет права подключаться, возвращаемый объект не будет иметь свойства Side,
+ * а свойство CanConnect будет равно false
+ */
 const checkLobbyToConnect = (lobby, clientID, password) => {
   const connect = { CanConnect: false, Reconnected: false };
 
@@ -64,8 +66,10 @@ const checkLobbyToConnect = (lobby, clientID, password) => {
 const changeClientStatus = (socketID, newStatus) => {
   clients[clients.findIndex((element) => element.id === socketID)].status = newStatus;
 };
-// Функция для отправки события, извещающего об изменении массива лобби,
-// и самого обновлённого массива лобби
+/**
+ * Функция для отправки события, извещающего об изменении массива лобби,
+ *  и самого обновлённого массива лобби
+ */
 const lobbiesUpdated = (lobbiesArray) => {
   clients.forEach((element) => {
     if (element.status === clientStatus.InLobbiesList) {
@@ -151,9 +155,11 @@ io.sockets.on('connection', (socket) => {
   clients.push({ id: socket.id, status: clientStatus.InMenu });
   // Клиент отключился
   socket.on('disconnect', () => {
-    // ADDED: hard disconnect fixes. Now it's handling all lobbies where our player
-    // has been before disconnecting or closed app
-    // finda all lobbies where this socket_id was
+    /**
+     * ADDED: hard disconnect fixes. Now it's handling all lobbies where our player
+     * has been before disconnecting or closed app
+     * finda all lobbies where this socket_id was
+     */
     const lobbiesWherePlayerWasBeforeDisconnect = lobbies
       .filter((element) => (element.userHistory.filter((el) => el.sid === socket.id)).length > 0);
 
@@ -231,8 +237,10 @@ io.sockets.on('connection', (socket) => {
       lobbies.push(newLobby);
       // Уведомляем запросившего клиента о том, что лобби успешно создано и отправляем ID лобби
       socket.emit('lobbyCreated', { id: newLobby.id });
-      // Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
-      // массив лобби обновился, и отправляем им обновлённый массив
+      /**
+       * Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
+       * массив лобби обновился, и отправляем им обновлённый массив
+       */
       lobbiesUpdated(getLobbiesForClient());
     } catch (error) {
       // Уведомляем клиента о том, что лобби не было создано
@@ -258,8 +266,10 @@ io.sockets.on('connection', (socket) => {
           lobby[`${connect.Side}PlayerName`] = clientName;
           lobby.playersCount += 1;
           lobby.userHistory.push({ uid: clientID, sid: socket.id, side: connect.Side });
-          // Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
-          // массив лобби обновился, и отправляем им обновлённый массив
+          /**
+           * Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
+           * массив лобби обновился, и отправляем им обновлённый массив
+           */
           lobbiesUpdated(getLobbiesForClient());
 
           const lobbyInfo = {
@@ -332,16 +342,20 @@ io.sockets.on('connection', (socket) => {
       }
       // Если оба игрока готовы ...
       if (lobby.xPlayerReady && lobby.oPlayerReady) {
-        // Уведомляем клиентов о старте игры и отправляем объект, хранящий ID игрока, чей ход,
-        // и матрицу, описывающую состояние игрового поля
+        /**
+         * Уведомляем клиентов о старте игры и отправляем объект, хранящий ID игрока, чей ход,
+         * и матрицу, описывающую состояние игрового поля
+         */
         io.in(lobby.id).emit('gameStarted', {
           turn: lobby.turn === symbolStatus.Cross ? lobby.xPlayerID : lobby.oPlayerID,
           board: lobby.field.matrix,
         });
         // Обновляем статус лобби
         lobby.status = lobbyStatus.Game;
-        // Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
-        // массив лобби обновился, и отправляем им обновлённый массив
+        /**
+         * Уведомляем всех клиентов, которые имеют статус "В списке лобби", о том, что
+         * массив лобби обновился, и отправляем им обновлённый массив
+         */
         lobbiesUpdated(getLobbiesForClient());
 
         const roomSockets = io.sockets.adapter.rooms[lobby.id].sockets;
